@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Il Mio Canale — Player</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0B0F14;
+    --surface: #131A21;
+    --surface-2: #1B232C;
+    --amber: #E8A33D;
+    --teal: #2EC4B6;
+    --text: #F2EFE9;
+    --text-muted: #8B97A1;
+    --border: #232C36;
+    --radius: 10px;
+  }
+
+  *{ box-sizing: border-box; margin:0; padding:0; }
+
+  html{ scroll-behavior: smooth; }
+
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Work Sans', sans-serif;
+    min-height: 100vh;
+    padding-bottom: 80px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation: none !important; transition: none !important; }
+  }
+
+  /* ---------- NAV ---------- */
+  nav{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-left{ display:flex; align-items:center; gap:14px; }
+
+  .pill-btn{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 20px;
+    border-radius: 999px;
+    font-family: 'Work Sans', sans-serif;
+    font-weight: 600;
+    font-size: 0.92rem;
+    cursor: pointer;
+    transition: border-color .2s ease, background .2s ease;
+  }
+  .pill-btn:hover{ border-color: var(--amber); }
+  .pill-btn:focus-visible{ outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  .icon-btn{
+    width: 40px; height:40px;
+    display:flex; align-items:center; justify-content:center;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    color: var(--text-muted);
+    cursor:pointer;
+    transition: border-color .2s ease, color .2s ease;
+  }
+  .icon-btn:hover{ border-color: var(--teal); color: var(--teal); }
+
+  .search-box{
+    display:flex; align-items:center; gap:10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 10px 18px;
+    border-radius: 999px;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    min-width: 220px;
+  }
+  .search-box kbd{
+    margin-left:auto;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.72rem;
+    background: var(--surface-2);
+    padding: 2px 7px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+  }
+
+  .brand{
+    font-family:'Bebas Neue', sans-serif;
+    letter-spacing: 0.08em;
+    font-size: 1.4rem;
+    color: var(--amber);
+  }
+
+  /* ---------- MAIN ---------- */
+  main{
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 24px 0;
+  }
+
+  .now-playing-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 8px;
+  }
+
+  h1.title{
+    font-family:'Bebas Neue', sans-serif;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    letter-spacing: 0.02em;
+    margin-bottom: 24px;
+    color: var(--text);
+  }
+
+  /* ---------- FILMSTRIP FRAME (signature element) ---------- */
+  .filmstrip-frame{
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 14px 14px 0;
+    border: 1px solid var(--border);
+  }
+
+  .sprockets{
+    display:flex;
+    justify-content: space-between;
+    padding: 0 10px 14px;
+  }
+  .sprockets span{
+    width: 9px; height: 9px;
+    border-radius: 2px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+  }
+  .sprockets.bottom{ padding: 14px 10px 0; }
+
+  .player-wrap{
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #000;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  video{
+    width:100%; height:100%;
+    object-fit: cover;
+    display:block;
+  }
+
+  .player-top-controls{
+    position:absolute; top:14px; right:14px;
+    display:flex; gap:10px;
+    opacity: 0;
+    transition: opacity .25s ease;
+  }
+  .player-wrap:hover .player-top-controls,
+  .player-wrap:focus-within .player-top-controls{ opacity: 1; }
+
+  .player-top-controls button{
+    width:36px; height:36px;
+    border-radius:50%;
+    background: rgba(11,15,20,0.7);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: var(--text);
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+
+  .play-overlay{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    background: transparent;
+    border:none;
+    cursor:pointer;
+  }
+  .play-overlay .circle{
+    width:74px; height:74px;
+    border-radius:50%;
+    background: rgba(11,15,20,0.55);
+    border: 1.5px solid rgba(242,239,233,0.5);
+    display:flex; align-items:center; justify-content:center;
+    transition: transform .2s ease, border-color .2s ease;
+  }
+  .play-overlay:hover .circle{ transform: scale(1.06); border-color: var(--amber); }
+  .play-overlay svg{ fill: var(--text); margin-left:4px; }
+
+  .player-bottom{
+    position:absolute; left:0; right:0; bottom:0;
+    padding: 10px 16px 14px;
+    background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
+    display:flex; flex-direction:column; gap:10px;
+  }
+
+  .scrub-row{
+    display:flex; align-items:center; gap:10px;
+  }
+  .scrub{
+    flex:1;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.18);
+    cursor:pointer;
+    position:relative;
+  }
+  .scrub-fill{
+    height:100%;
+    width:0%;
+    background: var(--amber);
+    border-radius:999px;
+    position:relative;
+  }
+  .scrub-fill::after{
+    content:'';
+    position:absolute; right:-5px; top:50%;
+    transform: translateY(-50%);
+    width:11px; height:11px;
+    border-radius:50%;
+    background: var(--amber);
+  }
+
+  .controls-row{
+    display:flex; align-items:center; gap:14px;
+  }
+  .controls-row .left, .controls-row .right{
+    display:flex; align-items:center; gap:14px;
+  }
+  .controls-row .right{ margin-left:auto; }
+
+  .ctrl-btn{
+    background:none; border:none; color:var(--text);
+    cursor:pointer; display:flex; align-items:center;
+    opacity: 0.9;
+  }
+  .ctrl-btn:hover{ opacity:1; color: var(--amber); }
+  .ctrl-btn:focus-visible{ outline: 2px solid var(--amber); outline-offset:2px; border-radius:4px; }
+
+  .time-display{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--text);
+  }
+
+  /* ---------- below-player progress / status ---------- */
+  .status-row{
+    text-align:center;
+    margin: 22px 0 6px;
+  }
+  .reel-progress{
+    width:100%;
+    height: 6px;
+    background: var(--surface-2);
+    border-radius: 999px;
+    overflow:hidden;
+    position:relative;
+    margin-bottom: 10px;
+  }
+  .reel-progress-fill{
+    height:100%;
+    width:0%;
+    background: linear-gradient(90deg, var(--teal), var(--amber));
+    transition: width .15s linear;
+  }
+  .watched-text{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .action-row{
+    display:flex; justify-content:center; align-items:center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin: 22px 0 50px;
+  }
+
+  select.pill-btn{
+    appearance:none;
+    -webkit-appearance:none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238B97A1' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    padding-right: 38px;
+  }
+
+  /* ---------- EPISODES SECTION ---------- */
+  .section-heading{
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 14px;
+  }
+  .section-heading h2{
+    font-family:'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    letter-spacing: 0.03em;
+  }
+  .section-heading .season-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .episode-grid{
+    display:grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    margin-bottom: 60px;
+  }
+  @media (max-width: 880px){
+    .episode-grid{ grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 560px){
+    .episode-grid{ grid-template-columns: repeat(2, 1fr); }
+    nav{ padding: 16px; flex-wrap:wrap; gap:12px; }
+    .search-box{ display:none; }
+  }
+
+  .episode-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow:hidden;
+    cursor:pointer;
+    text-align:left;
+    color: var(--text);
+    font-family:'Work Sans', sans-serif;
+    transition: transform .18s ease, border-color .18s ease;
+  }
+  .episode-card:hover{ transform: translateY(-3px); border-color: var(--teal); }
+  .episode-card:focus-visible{ outline: 2px solid var(--amber); outline-offset:2px; }
+  .episode-card.active{ border-color: var(--amber); }
+
+  .ep-thumb{
+    position:relative;
+    aspect-ratio: 16/10;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .ep-thumb .num{
+    position:absolute; top:8px; left:8px;
+    background: rgba(11,15,20,0.75);
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    padding: 3px 8px;
+    border-radius: 5px;
+  }
+  .ep-thumb .play-mini{
+    width:30px; height:30px; border-radius:50%;
+    background: rgba(11,15,20,0.55);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .ep-thumb .play-mini svg{ fill:var(--text); margin-left:2px; width:12px; }
+
+  .ep-meta{ padding: 10px 12px 14px; }
+  .ep-meta .ep-title{
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .ep-meta .ep-duration{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
+
+  .placeholder-note{
+    text-align:center;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    max-width: 640px;
+    margin: 0 auto 40px;
+    line-height: 1.6;
+    border-top: 1px solid var(--border);
+    padding-top: 24px;
+  }
+  .placeholder-note code{
+    font-family:'IBM Plex Mono', monospace;
+    background: var(--surface);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-left">
+    <button class="pill-btn">Esplora</button>
+    <button class="icon-btn" aria-label="Menu">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M1 4h14M1 8h14M1 12h14" stroke="currentColor" stroke-width="1.5"/></svg>
+    </button>
+  </div>
+  <div class="brand">TONDELLO S.P.A</div>
+  <div class="search-box">
+    Cerca qualsiasi cosa <kbd>⌘K</kbd>
+  </div>
+</nav>
+
+<main>
+  <div class="now-playing-label">In riproduzione · Stagione 1</div>
+  <h1 class="title" id="videoTitle">Ep. 1 - Posizione Scomoda</h1>
+
+  <div class="filmstrip-frame">
+    <div class="sprockets">
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+
+    <div class="player-wrap">
+      <video id="video" preload="metadata">
+        <source src="Ep. 1 - Posizione Scomoda.mp4" type="video/mp4">
+        Il tuo browser non supporta il tag video.
+      </video>
+
+      <div class="player-top-controls">
+        <button aria-label="Trasmetti">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M2 17v3h3a3 3 0 0 0-3-3zm0-4v2a5 5 0 0 1 5 5h2a7 7 0 0 0-7-7zm0-4v2a9 9 0 0 1 9 9h2A11 11 0 0 0 2 9zm19-6H3a1 1 0 0 0-1 1v3h2V5h18v14h-7v2h7a2 2 0 0 0 2-2V4a1 1 0 0 0-1-1z" fill="currentColor"/></svg>
+        </button>
+      </div>
+
+      <button class="play-overlay" id="playOverlay" aria-label="Play">
+        <span class="circle">
+          <svg width="22" height="26" viewBox="0 0 22 26"><path d="M0 0L22 13L0 26V0Z"/></svg>
+        </span>
+      </button>
+
+      <div class="player-bottom">
+        <div class="scrub-row">
+          <div class="scrub" id="scrub">
+            <div class="scrub-fill" id="scrubFill"></div>
+          </div>
+        </div>
+        <div class="controls-row">
+          <div class="left">
+            <button class="ctrl-btn" id="playBtn" aria-label="Play/Pausa">
+              <svg width="16" height="16" viewBox="0 0 16 16"><path d="M0 0L16 8L0 16V0Z" fill="currentColor"/></svg>
+            </button>
+            <button class="ctrl-btn" id="muteBtn" aria-label="Audio">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 9v6h4l5 5V4L7 9H3z" fill="currentColor"/><path d="M16 8a4 4 0 0 1 0 8" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+            </button>
+            <span class="time-display"><span id="curTime">00:00</span> / <span id="durTime">00:00</span></span>
+          </div>
+          <div class="right">
+            <button class="ctrl-btn" aria-label="Sottotitoli">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M6 14h4M14 14h4M6 10h2" stroke="currentColor" stroke-width="1.5"/></svg>
+            </button>
+            <button class="ctrl-btn" aria-label="Impostazioni">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" stroke="currentColor" stroke-width="1.5"/></svg>
+            </button>
+            <button class="ctrl-btn" id="fullscreenBtn" aria-label="Schermo intero">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M8 3H3v5M21 8V3h-5M16 21h5v-5M3 16v5h5" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sprockets bottom">
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <div class="status-row">
+    <div class="reel-progress"><div class="reel-progress-fill" id="reelFill"></div></div>
+    <div class="watched-text" id="watchedText">0% visto</div>
+  </div>
+
+  <div class="action-row">
+    <button class="pill-btn" id="toggleProgressBtn">Nascondi Progresso</button>
+    <button class="pill-btn" id="toggleAutoplayBtn">Disattiva Auto-Next</button>
+    <select class="pill-btn" id="bookmarkSelect">
+      <option value="">Segnalibro</option>
+      <option value="watch-later">Guarda più tardi</option>
+      <option value="favorites">Preferiti</option>
+      <option value="in-progress">In corso</option>
+    </select>
+  </div>
+
+  <div class="section-heading">
+    <h2>Episodi</h2>
+    <span class="season-label">STAGIONE 1 · 10 EPISODI</span>
+  </div>
+
+  <div class="episode-grid" id="episodeGrid"></div>
+
+  <p class="placeholder-note">
+  </p>
+</main>
+
+<script>
+  const episodes = [
+    { n:1,  title:"Ep. 1 - Posizione Scomoda", duration:"04:15", hue: 28,  video:"Ep. 1 - Posizione Scomoda.mp4", thumb:"vlcsnap-2026-06-21-20h50m36s027.png" },
+    { n:2,  title:"Ep. 2 - Passaportafogli",   duration:"04:46", hue: 165, video:"Ep. 2 - Passaportafogli.mp4", thumb:"vlcsnap-2026-06-21-20h50m55s713.png" },
+    { n:3,  title:"Ep. 3 - La Sfida",          duration:"03:50", hue: 200, video:"Ep. 3 - La Sfida.mp4", thumb:"vlcsnap-2026-06-21-20h51m05s647.png" },
+    { n:4,  title:"Incontro di Boxe",          duration:"04:19", hue: 320, video:"Ep. 4 - Incontro Di Boxe.mp4", thumb:"vlcsnap-2026-06-21-20h51m12s906.png" },
+    { n:5,  title:"Venduti",                   duration:"03:33", hue: 90,  video:"Ep. 5 - Venduti.mp4", thumb:"vlcsnap-2026-06-21-20h51m21s653.png" },
+    { n:6,  title:"Fatto di cronaca",          duration:"03:36", hue: 140, video:"Ep. 6 - Fatto di cronaca.mp4", thumb:"vlcsnap-2026-06-21-20h51m32s039.png" },
+    { n:7,  title:"Il grande ufficio",         duration:"02:48", hue: 250, video:"Ep. 7 - Il grande ufficio.mp4", thumb:"vlcsnap-2026-06-21-20h51m39s775.png" },
+    { n:8,  title:"Il portafogli",             duration:"03:36", hue: 10,  video:"Ep. 8 - Il portafogli.mp4", thumb:"vlcsnap-2026-06-21-20h51m45s064.png" },
+    { n:9,  title:"Patti si fà bella",         duration:"02:37", hue: 45,  video:"Ep. 9 - Patti si fa bella.mp4", thumb:"vlcsnap-2026-06-21-20h51m52s210.png" },
+    { n:10, title:"Quiz radiofonico",          duration:"04:17", hue: 190, video:"Ep. 10 - Quiz radiofonico.mp4", thumb:"vlcsnap-2026-06-21-20h51m57s306.png" },
+  ];
+
+  const grid = document.getElementById('episodeGrid');
+  const videoTitle = document.getElementById('videoTitle');
+
+  function playIconSVG(){
+    return `<svg width="12" height="14" viewBox="0 0 12 14"><path d="M0 0L12 7L0 14V0Z" fill="currentColor"/></svg>`;
+  }
+
+  function renderGrid(activeIndex){
+    grid.innerHTML = '';
+    episodes.forEach((ep, i) => {
+      const card = document.createElement('button');
+      card.className = 'episode-card' + (i === activeIndex ? ' active' : '');
+      card.innerHTML = `
+        <div class="ep-thumb" style="background: url('${ep.thumb}') center/cover, linear-gradient(135deg, hsl(${ep.hue},45%,18%), hsl(${ep.hue+25},55%,28%));">
+          <span class="num">${ep.n}</span>
+          <span class="play-mini">${playIconSVG()}</span>
+        </div>
+        <div class="ep-meta">
+          <div class="ep-title">${ep.n}. ${ep.title}</div>
+          <div class="ep-duration">${ep.duration}</div>
+        </div>
+      `;
+      card.addEventListener('click', () => selectEpisode(i));
+      grid.appendChild(card);
+    });
+  }
+
+  function selectEpisode(i){
+    currentIndex = i;
+    const ep = episodes[i];
+    videoTitle.textContent = ep.title;
+    renderGrid(i);
+    video.querySelector('source').src = ep.video;
+    video.load();
+    video.currentTime = 0;
+    video.play().catch(()=>{});
+  }
+
+  let currentIndex = 0;
+
+  /* ---------- video controls ---------- */
+  const video = document.getElementById('video');
+  const playBtn = document.getElementById('playBtn');
+  const playOverlay = document.getElementById('playOverlay');
+  const muteBtn = document.getElementById('muteBtn');
+  const curTime = document.getElementById('curTime');
+  const durTime = document.getElementById('durTime');
+  const scrub = document.getElementById('scrub');
+  const scrubFill = document.getElementById('scrubFill');
+  const reelFill = document.getElementById('reelFill');
+  const watchedText = document.getElementById('watchedText');
+  const fullscreenBtn = document.getElementById('fullscreenBtn');
+
+  renderGrid(currentIndex);
+
+  function fmt(t){
+    if (isNaN(t)) return "00:00";
+    const m = Math.floor(t/60).toString().padStart(2,'0');
+    const s = Math.floor(t%60).toString().padStart(2,'0');
+    return `${m}:${s}`;
+  }
+
+  function togglePlay(){
+    if (video.paused) { video.play(); } else { video.pause(); }
+  }
+  playBtn.addEventListener('click', togglePlay);
+  playOverlay.addEventListener('click', togglePlay);
+
+  video.addEventListener('play', () => { playOverlay.style.opacity = 0; });
+  video.addEventListener('pause', () => { playOverlay.style.opacity = 1; });
+
+  video.addEventListener('loadedmetadata', () => {
+    durTime.textContent = fmt(video.duration);
+  });
+
+  video.addEventListener('timeupdate', () => {
+    curTime.textContent = fmt(video.currentTime);
+    const pct = (video.currentTime / video.duration) * 100 || 0;
+    scrubFill.style.width = pct + '%';
+    reelFill.style.width = pct + '%';
+    watchedText.textContent = pct.toFixed(2) + '% visto';
+  });
+
+  scrub.addEventListener('click', (e) => {
+    const rect = scrub.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    video.currentTime = pct * video.duration;
+  });
+
+  muteBtn.addEventListener('click', () => {
+    video.muted = !video.muted;
+    muteBtn.style.opacity = video.muted ? 0.5 : 1;
+  });
+
+  fullscreenBtn.addEventListener('click', () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      video.parentElement.requestFullscreen();
+    }
+  });
+
+  let autoplayEnabled = true;
+  video.addEventListener('ended', () => {
+    if (autoplayEnabled && currentIndex < episodes.length - 1) {
+      selectEpisode(currentIndex + 1);
+    }
+  });
+
+  /* ---------- action row toggles ---------- */
+  const toggleProgressBtn = document.getElementById('toggleProgressBtn');
+  const statusRow = document.querySelector('.status-row');
+  toggleProgressBtn.addEventListener('click', () => {
+    const hidden = statusRow.style.display === 'none';
+    statusRow.style.display = hidden ? 'block' : 'none';
+    toggleProgressBtn.textContent = hidden ? 'Nascondi Progresso' : 'Mostra Progresso';
+  });
+
+  const toggleAutoplayBtn = document.getElementById('toggleAutoplayBtn');
+  toggleAutoplayBtn.addEventListener('click', () => {
+    autoplayEnabled = !autoplayEnabled;
+    toggleAutoplayBtn.textContent = autoplayEnabled ? 'Disattiva Auto-Next' : 'Attiva Auto-Next';
+  });
+
+  document.getElementById('bookmarkSelect').addEventListener('change', (e) => {
+    console.log('Segnalibro impostato:', e.target.value);
+  });
+</script>
+
+</body>
+</html>
